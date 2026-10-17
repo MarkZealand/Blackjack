@@ -16,34 +16,49 @@ public void newGame(Scanner input){
 
         Player player = new Player();
         Dealer dealer =  new Dealer();
-        boolean quitSession = false;
 
-        while(!quitSession){
-            Deck.initDeck();
-            player.clearHand();
-            dealer.clearHand();
-
-            double betAmount = promptBet(input, player);
-            //De første 2 kort til spiller og dealer
-            firstRound(player, dealer);
-            if(player.hand.getHandValue() == 21){
-                System.out.println("Blackjack!");
-                handleRoundEnd(player, dealer, betAmount);
-            }
-            else {
-                //Spiller loop, indtil bust eller stand
-                GameState result = playerTurn(input, player);
-
-                if (result == GameState.Stand) {
-                    dealer.playTurn();
-                }
-                handleRoundEnd(player, dealer, betAmount);
-
-                if(!promptNewRound(input) || player.bankroll > 0)
-                    quitSession = true;
-            }
-        }
+        exitProgram = playSession(input, player, dealer);
     }
+}
+
+private boolean playSession(Scanner input, Player player, Dealer dealer){
+    while(true){
+        Deck.initDeck();
+        player.clearHand();
+        dealer.clearHand();
+
+        double betAmount = promptBet(input, player);
+        //De første 2 kort til spiller og dealer
+        firstRound(player, dealer);
+
+        if(player.hand.getHandValue() == 21){
+            System.out.println("Blackjack!");
+            handleRoundEnd(player, dealer, betAmount);
+        }
+        else {
+            //Spiller loop, indtil bust eller stand
+            GameState result = playerTurn(input, player);
+
+            if (result == GameState.Stand) {
+                dealer.playTurn();
+            }
+            handleRoundEnd(player, dealer, betAmount);
+        }
+
+        if(!continuePlaying(input, player))
+            return true;
+    }
+}
+
+private boolean continuePlaying(Scanner input, Player player){
+    if(player.bankroll <= 0){
+        if(promptRestart(input)){
+            Player.resetBankroll();
+            return true;
+        }
+        return false;
+    }
+    return promptNewRound(input);
 }
 
 public boolean promptNewRound(Scanner input){
@@ -55,6 +70,13 @@ public boolean promptNewRound(Scanner input){
     return true;
 }
 
+public boolean promptRestart(Scanner input){
+    System.out.println("Din saldo er tom.");
+    input.nextLine();
+    System.out.print("Vil du starte forfra med " + Player.startingBankroll + "? (ja/nej)");
+    return input.nextLine().equalsIgnoreCase("ja");
+}
+
 public void handleRoundEnd(Player player, Dealer dealer, double betAmount) {
     if(player.hand.getHandValue() == dealer.hand.getHandValue())
     {
@@ -63,27 +85,18 @@ public void handleRoundEnd(Player player, Dealer dealer, double betAmount) {
     }
     else if(player.hand.getHandValue() == 21){
         player.bankroll += betAmount * 2.5;
-        System.out.println("Du vandt: " + betAmount * 2.5);
+        System.out.println("Du vandt: " + betAmount * 1.5);
         System.out.println("Ny saldo: " + player.bankroll);
     }
     else if(player.hand.getHandValue() > dealer.hand.getHandValue()){
         player.bankroll += betAmount * 2.0;
-        System.out.println("Du vandt: " + betAmount * 2.0);
+        System.out.println("Du vandt: " + betAmount * 1.0);
         System.out.println("Ny saldo: " + player.bankroll);
     }
     else {
         System.out.println("Du tabte: " + betAmount);
         System.out.println("Ny saldo: " + player.bankroll);
     }
-
-
-}
-private static boolean isRoundOver(Player player) {
-    boolean gameOver;
-    System.out.println("Beklager, du tabte!");
-    System.out.println("Din nye saldo: " + player.bankroll);
-    gameOver = true;
-    return gameOver;
 }
 
 private GameState playerTurn(Scanner input, Player player) {
@@ -92,7 +105,8 @@ private GameState playerTurn(Scanner input, Player player) {
 
         switch (choice) {
             case 1:
-                player.stand();
+                //faktisk ikke nødvendigt at kalde player.stand() her
+                //player.stand();
                 return GameState.Stand;
             case 2:
                 player.hit();
@@ -151,17 +165,17 @@ public void showRules(Scanner input){
 }
 public double promptBet(Scanner input, Player player){
     System.out.println("Din nuværende saldo: " + player.bankroll);
-    System.out.print("Indtast beløb du ønsker at satse: ");
 
     double betAmount = 0;
-    while(betAmount == 0) {
+    while(true) {
+        System.out.print("Indtast beløb du ønsker at satse: ");
         betAmount = input.nextInt();
-        if (player.bankroll >= betAmount) {
+        if (betAmount > 0 && player.bankroll >= betAmount) {
             player.bankroll -= betAmount;
-        } else
-            showWrongBet();
+            return betAmount;
+        }
+        showWrongBet();
     }
-    return betAmount;
 }
 
 public void showWrongBet(){
@@ -178,16 +192,3 @@ public int promptAction(Scanner input){
 
     return input.nextInt();
 }
-
-public void promptNewGame(Scanner input) {
-    System.out.println("Ønsker du at spille et nyt spil? (ja/nej)");
-
-    if(input.next().equals("ja")){
-        newGame(input);
-    }
-    else{
-        System.exit(0);
-    }
-}
-
-

@@ -1,10 +1,15 @@
 public class Player {
     public final Hand hand = new Hand();
-    public static double bankroll = 20.00;
     public static void bet(int amount){
         bankroll -= amount;
     }
+    public static final double startingBankroll = 20.00;
+    public static double bankroll = startingBankroll;
 
+    public static void resetBankroll(){
+        bankroll = startingBankroll;
+    }
+    
     public void hit(){
         Card newCard = Deck.dealCard();
         System.out.println("Du trak: " + newCard.getSuit().getValue() + newCard.getRank().getValue());
